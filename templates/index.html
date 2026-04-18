@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoiceForge — Voice Cloning Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & base ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080b10;
+      --surface:   #0d1219;
+      --border:    #1e2a38;
+      --accent:    #00e5ff;
+      --accent2:   #ff3d6b;
+      --accent3:   #a259ff;
+      --text:      #e8f0fe;
+      --muted:     #6b7fa3;
+      --success:   #00e676;
+      --radius:    12px;
+      --glow:      0 0 30px rgba(0,229,255,.18);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise-grain overlay ───────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    /* ── Grid background ───────────────────────────────────────────── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────────── */
+    .wrapper {
+      position: relative; z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--accent);
+      text-shadow: var(--glow);
+      margin-bottom: 8px;
+    }
+
+    .logo svg { width: 36px; height: 36px; }
+
+    header p {
+      color: var(--muted);
+      font-size: .8rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    /* ── Card ─────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 20px;
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: rgba(0,229,255,.25); }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: .7rem;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* ── Upload zone ──────────────────────────────────────────────── */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 580px) { .upload-grid { grid-template-columns: 1fr; } }
+
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(0,229,255,.04);
+    }
+
+    .upload-zone.has-file {
+      border-color: var(--success);
+      background: rgba(0,230,118,.04);
+    }
+
+    .upload-zone input[type=file] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer;
+      width: 100%; height: 100%;
+    }
+
+    .upload-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .upload-label {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: .9rem;
+      margin-bottom: 4px;
+    }
+
+    .upload-hint {
+      color: var(--muted);
+      font-size: .72rem;
+    }
+
+    .file-name {
+      margin-top: 10px;
+      font-size: .72rem;
+      color: var(--success);
+      word-break: break-all;
+      display: none;
+    }
+
+    /* ── Controls ─────────────────────────────────────────────────── */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 580px) { .controls-grid { grid-template-columns: 1fr; } }
+
+    .control-item label {
+      display: block;
+      font-size: .7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0,229,255,.5);
+      transition: transform .15s;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+    .slider-value {
+      font-size: .8rem;
+      color: var(--accent);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ── Convert button ───────────────────────────────────────────── */
+    .btn-convert {
+      width: 100%;
+      padding: 18px;
+      border: none;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent3) 100%);
+      color: #000;
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      margin-top: 28px;
+    }
+
+    .btn-convert:hover  { opacity: .9; transform: translateY(-1px); }
+    .btn-convert:active { transform: translateY(0); }
+    .btn-convert:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── Progress ─────────────────────────────────────────────────── */
+    .progress-section { display: none; }
+
+    .progress-bar-outer {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress-bar-inner {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent3));
+      border-radius: 3px;
+      width: 0%;
+      transition: width .4s ease;
+      animation: pulse-bar 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-bar {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .6; }
+    }
+
+    .progress-steps {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .step-badge {
+      font-size: .65rem;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      text-transform: uppercase;
+      transition: all .3s;
+    }
+
+    .step-badge.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0,229,255,.08);
+      box-shadow: 0 0 12px rgba(0,229,255,.2);
+    }
+
+    .step-badge.done {
+      border-color: var(--success);
+      color: var(--success);
+      background: rgba(0,230,118,.08);
+    }
+
+    /* ── Output section ───────────────────────────────────────────── */
+    .output-section { display: none; }
+
+    .waveform-container {
+      background: #060a0f;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      min-height: 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    canvas#waveformCanvas {
+      width: 100%;
+      display: block;
+    }
+
+    audio {
+      width: 100%;
+      outline: none;
+      filter: invert(1) hue-rotate(180deg);
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--accent);
+      font-family: 'Space Mono', monospace;
+      font-size: .8rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .2s;
+    }
+    .btn-download:hover { background: rgba(0,229,255,.08); }
+
+    /* ── Stats grid ───────────────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .stat-chip {
+      background: #060a0f;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .stat-label {
+      font-size: .62rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* ── Error ────────────────────────────────────────────────────── */
+    .error-box {
+      display: none;
+      background: rgba(255,61,107,.08);
+      border: 1px solid rgba(255,61,107,.3);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--accent2);
+      font-size: .8rem;
+      margin-top: 16px;
+    }
+
+    /* ── Pipeline info ────────────────────────────────────────────── */
+    .pipeline-info {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 48px;
+    }
+
+    .pipe-step {
+      font-size: .65rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+    }
+
+    .pipe-sep {
+      color: var(--border);
+      line-height: 28px;
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="36" height="36" rx="8" fill="rgba(0,229,255,.1)"/>
+        <path d="M8 18 Q11 8 14 18 Q17 28 20 18 Q23 8 26 18 Q29 28 28 18" stroke="#00e5ff" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <circle cx="18" cy="18" r="3" fill="#00e5ff" opacity=".6"/>
+      </svg>
+      VoiceForge
+    </div>
+    <p>Neural voice conversion studio</p>
+  </header>
+
+  <!-- Pipeline overview -->
+  <div class="pipeline-info">
+    <span class="pipe-step">Upload</span>
+    <span class="pipe-sep">→</span>
+    <span class="pipe-step">Denoise</span>
+    <span class="pipe-sep">→</span>
+    <span class="pipe-step">Feature Extract</span>
+    <span class="pipe-sep">→</span>
+    <span class="pipe-step">Spectral Map</span>
+    <span class="pipe-sep">→</span>
+    <span class="pipe-step">Pitch Convert</span>
+    <span class="pipe-sep">→</span>
+    <span class="pipe-step">Output</span>
+  </div>
+
+  <!-- Upload card -->
+  <div class="card">
+    <div class="card-title">01 — Audio Sources</div>
+    <div class="upload-grid">
+
+      <div class="upload-zone" id="sourceZone">
+        <input type="file" id="sourceFile" accept=".wav,.mp3,.flac,.ogg,.m4a" />
+        <span class="upload-icon">🎙️</span>
+        <div class="upload-label">Source Voice</div>
+        <div class="upload-hint">The voice you want to convert</div>
+        <div class="file-name" id="sourceFileName"></div>
+      </div>
+
+      <div class="upload-zone" id="targetZone">
+        <input type="file" id="targetFile" accept=".wav,.mp3,.flac,.ogg,.m4a" />
+        <span class="upload-icon">🔊</span>
+        <div class="upload-label">Target Voice</div>
+        <div class="upload-hint">The voice style to clone</div>
+        <div class="file-name" id="targetFileName"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Controls card -->
+  <div class="card">
+    <div class="card-title">02 — Conversion Controls</div>
+    <div class="controls-grid">
+
+      <div class="control-item">
+        <label>Pitch Shift (semitones)</label>
+        <div class="slider-wrap">
+          <input type="range" id="pitchSlider" min="-12" max="12" value="0" step="1" />
+          <span class="slider-value" id="pitchVal">0</span>
+        </div>
+      </div>
+
+      <div class="control-item">
+        <label>Formant Scale</label>
+        <div class="slider-wrap">
+          <input type="range" id="formantSlider" min="0.7" max="1.4" value="1.0" step="0.05" />
+          <span class="slider-value" id="formantVal">1.0×</span>
+        </div>
+      </div>
+
+    </div>
+
+    <button class="btn-convert" id="convertBtn" disabled>
+      ⚡ Convert Voice
+    </button>
+  </div>
+
+  <!-- Progress card -->
+  <div class="card progress-section" id="progressSection">
+    <div class="card-title">03 — Processing</div>
+    <div class="progress-bar-outer">
+      <div class="progress-bar-inner" id="progressBar"></div>
+    </div>
+    <div class="progress-steps" id="progressSteps">
+      <span class="step-badge" data-step="load">Load</span>
+      <span class="step-badge" data-step="denoise">Denoise</span>
+      <span class="step-badge" data-step="features">Features</span>
+      <span class="step-badge" data-step="spectral">Spectral Map</span>
+      <span class="step-badge" data-step="pitch">Pitch</span>
+      <span class="step-badge" data-step="formant">Formant</span>
+      <span class="step-badge" data-step="save">Save</span>
+    </div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <!-- Output card -->
+  <div class="card output-section" id="outputSection">
+    <div class="card-title">04 — Converted Audio</div>
+    <div class="waveform-container">
+      <canvas id="waveformCanvas" height="80"></canvas>
+    </div>
+    <audio id="audioPlayer" controls></audio>
+    <a class="btn-download" id="downloadBtn" href="#" download>
+      ⬇ Download WAV
+    </a>
+    <div class="stats-grid" id="statsGrid"></div>
+  </div>
+
+</div>
+
+<script>
+// ── File upload handling ───────────────────────────────────────────────────
+
+function setupZone(zoneId, inputId, nameId) {
+  const zone  = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  const label = document.getElementById(nameId);
+
+  input.addEventListener('change', () => {
+    if (input.files[0]) {
+      label.textContent = '✓ ' + input.files[0].name;
+      label.style.display = 'block';
+      zone.classList.add('has-file');
+    }
+    checkReady();
+  });
+
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', ()=> zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      label.textContent = '✓ ' + file.name;
+      label.style.display = 'block';
+      zone.classList.add('has-file');
+    }
+    checkReady();
+  });
+}
+
+setupZone('sourceZone', 'sourceFile', 'sourceFileName');
+setupZone('targetZone', 'targetFile', 'targetFileName');
+
+function checkReady() {
+  const src = document.getElementById('sourceFile').files[0];
+  const tgt = document.getElementById('targetFile').files[0];
+  document.getElementById('convertBtn').disabled = !(src && tgt);
+}
+
+// ── Sliders ────────────────────────────────────────────────────────────────
+
+document.getElementById('pitchSlider').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  document.getElementById('pitchVal').textContent = (v > 0 ? '+' : '') + v;
+});
+
+document.getElementById('formantSlider').addEventListener('input', function() {
+  document.getElementById('formantVal').textContent = parseFloat(this.value).toFixed(2) + '×';
+});
+
+// ── Progress simulation ────────────────────────────────────────────────────
+
+const STEPS = ['load','denoise','features','spectral','pitch','formant','save'];
+let   stepTimer = null;
+let   currentStep = -1;
+
+function startProgress() {
+  currentStep = -1;
+  document.getElementById('progressBar').style.width = '0%';
+  document.querySelectorAll('.step-badge').forEach(b => {
+    b.classList.remove('active','done');
+  });
+  advanceStep();
+}
+
+function advanceStep() {
+  currentStep++;
+  if (currentStep >= STEPS.length) return;
+
+  const pct  = Math.round(((currentStep + 1) / STEPS.length) * 90);
+  document.getElementById('progressBar').style.width = pct + '%';
+
+  STEPS.forEach((s, i) => {
+    const el = document.querySelector(`.step-badge[data-step="${s}"]`);
+    if (i < currentStep)  el.classList.add('done'), el.classList.remove('active');
+    if (i === currentStep) el.classList.add('active');
+  });
+
+  // Vary speed to feel realistic
+  const delays = [400, 700, 900, 1200, 600, 500, 300];
+  stepTimer = setTimeout(advanceStep, delays[currentStep] || 500);
+}
+
+function finishProgress() {
+  clearTimeout(stepTimer);
+  document.getElementById('progressBar').style.width = '100%';
+  STEPS.forEach(s => {
+    const el = document.querySelector(`.step-badge[data-step="${s}"]`);
+    el.classList.add('done'); el.classList.remove('active');
+  });
+}
+
+// ── Waveform visualisation ─────────────────────────────────────────────────
+
+async function drawWaveform(audioUrl) {
+  const canvas = document.getElementById('waveformCanvas');
+  const ctx    = canvas.getContext('2d');
+  canvas.width = canvas.parentElement.clientWidth - 32;
+
+  try {
+    const res     = await fetch(audioUrl);
+    const buf     = await res.arrayBuffer();
+    const ac      = new (window.AudioContext || window.webkitAudioContext)();
+    const decoded = await ac.decodeAudioData(buf);
+    const data    = decoded.getChannelData(0);
+
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const step   = Math.ceil(data.length / W);
+    const mid    = H / 2;
+    const amp    = mid * 0.85;
+
+    // Gradient fill
+    const grad = ctx.createLinearGradient(0, 0, W, 0);
+    grad.addColorStop(0,   '#00e5ff');
+    grad.addColorStop(0.5, '#a259ff');
+    grad.addColorStop(1,   '#ff3d6b');
+
+    ctx.beginPath();
+    ctx.moveTo(0, mid);
+    for (let i = 0; i < W; i++) {
+      let max = 0;
+      for (let j = 0; j < step; j++) {
+        const v = Math.abs(data[(i * step) + j] || 0);
+        if (v > max) max = v;
+      }
+      ctx.lineTo(i, mid - max * amp);
+    }
+    for (let i = W - 1; i >= 0; i--) {
+      let max = 0;
+      for (let j = 0; j < step; j++) {
+        const v = Math.abs(data[(i * step) + j] || 0);
+        if (v > max) max = v;
+      }
+      ctx.lineTo(i, mid + max * amp);
+    }
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+  } catch(e) {
+    // Fallback: flat line
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle = '#00e5ff44';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
+  }
+}
+
+// ── Stats rendering ────────────────────────────────────────────────────────
+
+function renderStats(stats) {
+  const labels = {
+    source_duration_s  : 'Source',
+    target_duration_s  : 'Target',
+    output_duration_s  : 'Output',
+    src_f0_mean_hz     : 'Src F0',
+    tgt_f0_mean_hz     : 'Tgt F0',
+    processing_time_s  : 'Time',
+  };
+  const units = {
+    source_duration_s : 's',
+    target_duration_s : 's',
+    output_duration_s : 's',
+    src_f0_mean_hz    : ' Hz',
+    tgt_f0_mean_hz    : ' Hz',
+    processing_time_s : 's',
+  };
+
+  const grid = document.getElementById('statsGrid');
+  grid.innerHTML = '';
+  for (const [k, label] of Object.entries(labels)) {
+    if (stats[k] === undefined) continue;
+    const chip = document.createElement('div');
+    chip.className = 'stat-chip';
+    chip.innerHTML = `
+      <div class="stat-label">${label}</div>
+      <div class="stat-value">${stats[k]}${units[k] || ''}</div>
+    `;
+    grid.appendChild(chip);
+  }
+}
+
+// ── Convert ────────────────────────────────────────────────────────────────
+
+document.getElementById('convertBtn').addEventListener('click', async () => {
+  const srcFile = document.getElementById('sourceFile').files[0];
+  const tgtFile = document.getElementById('targetFile').files[0];
+  if (!srcFile || !tgtFile) return;
+
+  // Show progress
+  const progSection = document.getElementById('progressSection');
+  progSection.style.display = 'block';
+  document.getElementById('outputSection').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+  document.getElementById('convertBtn').disabled = true;
+
+  startProgress();
+
+  const fd = new FormData();
+  fd.append('source_audio',   srcFile);
+  fd.append('target_audio',   tgtFile);
+  fd.append('pitch_shift',    document.getElementById('pitchSlider').value);
+  fd.append('formant_shift',  document.getElementById('formantSlider').value);
+
+  try {
+    const res  = await fetch('/convert', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    finishProgress();
+
+    if (data.error) throw new Error(data.error);
+
+    // Show output
+    const streamUrl = `/stream/${data.output_file}`;
+    const player    = document.getElementById('audioPlayer');
+    player.src      = streamUrl;
+
+    const dlBtn = document.getElementById('downloadBtn');
+    dlBtn.href       = data.download_url;
+    dlBtn.download   = data.output_file;
+
+    await drawWaveform(streamUrl);
+    if (data.stats) renderStats(data.stats);
+
+    document.getElementById('outputSection').style.display = 'block';
+
+  } catch(err) {
+    finishProgress();
+    const eb = document.getElementById('errorBox');
+    eb.textContent = '⚠ ' + (err.message || 'Conversion failed');
+    eb.style.display = 'block';
+  } finally {
+    document.getElementById('convertBtn').disabled = false;
+    checkReady();
+  }
+});
+</script>
+</body>
+</html>
