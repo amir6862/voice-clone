@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎙️ VoiceForge
+#  VoiceForge
 
 ### Zero-Shot Voice Cloning & Conversion Studio
 
@@ -15,7 +15,7 @@
 
 ---
 
-## 📖 Table of Contents
+##  Table of Contents
 
 - [What Is This?](#-what-is-this)
 - [How It Works](#-how-it-works)
@@ -34,14 +34,14 @@
 
 ---
 
-## 🧠 What Is This?
+##  What Is This?
 
 **VoiceForge** is a complete, zero-shot voice conversion system. You give it two audio files:
 
 | Input | Description |
 |---|---|
-| 🎙️ **Source Voice** | The original speaker — the audio you want to transform |
-| 🔊 **Target Voice** | The voice to clone — whose style you want to copy |
+|  **Source Voice** | The original speaker — the audio you want to transform |
+|  **Target Voice** | The voice to clone — whose style you want to copy |
 
 VoiceForge outputs a new audio file that sounds like the **source speaker's words** delivered in the **target speaker's voice**.
 
@@ -49,7 +49,7 @@ No GPU required. No model training. Works on any laptop.
 
 ---
 
-## ⚙️ How It Works
+##  How It Works
 
 VoiceForge uses a classical DSP + machine learning hybrid pipeline:
 
@@ -83,17 +83,17 @@ This approach is **zero-shot** — it extracts a statistical timbral fingerprint
 
 ---
 
-## ✨ Features
+##  Features
 
-- 🎙️ **Upload any audio** — WAV, MP3, FLAC, OGG, M4A all supported
-- 🔊 **Zero-shot voice conversion** — no training, no GPU needed
-- 🎚️ **Pitch control** — shift ±12 semitones on top of auto F0 matching
-- 🔬 **Formant control** — adjust vocal-tract character (0.7× darker → 1.4× brighter)
-- 📊 **Waveform visualisation** — interactive waveform rendered in the browser
-- ⬇️ **Downloadable output** — get your converted WAV in one click
-- 🖥️ **Web UI + CLI** — use the browser interface or script it from the terminal
-- 🧹 **Built-in denoising** — spectral noise gate applied automatically
-- 📈 **Conversion stats** — source/target/output duration, F0 values, processing time
+-  **Upload any audio** — WAV, MP3, FLAC, OGG, M4A all supported
+-  **Zero-shot voice conversion** — no training, no GPU needed
+-  **Pitch control** — shift ±12 semitones on top of auto F0 matching
+-  **Formant control** — adjust vocal-tract character (0.7× darker → 1.4× brighter)
+-  **Waveform visualisation** — interactive waveform rendered in the browser
+-  **Downloadable output** — get your converted WAV in one click
+-  **Web UI + CLI** — use the browser interface or script it from the terminal
+-  **Built-in denoising** — spectral noise gate applied automatically
+-  **Conversion stats** — source/target/output duration, F0 values, processing time
 
 ---
 
@@ -188,7 +188,7 @@ The web UI guides you through the full conversion in 4 steps:
 
 ---
 
-## ⌨️ CLI Usage
+##  CLI Usage
 
 For batch processing or scripting, use `cli.py` directly:
 
@@ -334,7 +334,7 @@ Full integration guide: [jik876/hifi-gan](https://github.com/jik876/hifi-gan)
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 | Problem | Solution |
 |---|---|
@@ -376,13 +376,13 @@ git push origin feature/my-improvement
 
 **Ideas for contributions:**
 
-- 🔊 HiFi-GAN vocoder integration
-- 🎤 Real-time microphone streaming conversion
-- 📦 Batch CLI processing (convert multiple files at once)
-- 🐳 Docker / docker-compose setup
-- 🧪 Unit tests for `voice_converter.py`
-- 📊 Speaker similarity score metric (cosine distance of MFCC embeddings)
-- 🌐 Multi-language UI
+-  HiFi-GAN vocoder integration
+-  Real-time microphone streaming conversion
+-  Batch CLI processing (convert multiple files at once)
+-  Docker / docker-compose setup
+-  Unit tests for `voice_converter.py`
+-  Speaker similarity score metric (cosine distance of MFCC embeddings)
+-  Multi-language UI
 
 ---
 
